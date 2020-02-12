@@ -1,6 +1,8 @@
 (ns hash
   (:require [clojure.java.io :as io])
-  (:import (java.security MessageDigest)))
+  (:import (java.security MessageDigest)
+           (java.io ByteArrayOutputStream ByteArrayInputStream)
+           (java.util.zip DeflaterOutputStream)))
 
 (defn sha1-hash-bytes [data]
   (.digest (MessageDigest/getInstance "sha1")
@@ -18,15 +20,36 @@
 (defn sha1-sum [header+blob]
   (bytes->hex-string (sha1-hash-bytes header+blob)))
 
-(defn content-address
+(defn zip-str
+  "Zip the given data with zlib. Return a ByteArrayInputStream of the zipped
+  content."
+  [data]
+  (let [out (ByteArrayOutputStream.)
+        zipper (DeflaterOutputStream. out)]
+    (io/copy data zipper)
+    (.close zipper)
+    (ByteArrayInputStream. (.toByteArray out))))
+
+(defn blob-data
   "function to compute the content address for a given file"
   [file]
   (let [contents (slurp file)]
     (str "blob " (count contents) "\000" contents)))
 
+(defn print-address
+  "prints hash address for given file"
+  [file]
+  (println (sha1-sum (blob-data file))))
+
+
 (defn write-blob
   "function takes an address and writes it to the .git database"
-  [file-addr])
+  [file]
+  (let [header+blob (blob-data file)
+        address (sha1-sum header+blob)
+        path-of-destination-file (str ".git\\objects\\" (subs address 0 2) "\\" (subs address 2))]
+    (if (not (.isDirectory (io/file (subs path-of-destination-file 0 15)))) (io/make-parents path-of-destination-file))
+    (io/copy (zip-str header+blob) (io/file path-of-destination-file))))
 
 (defn hash-object
   "main function for handling the hash-object command"
@@ -34,10 +57,9 @@
   (let [check-exists #(.exists (io/as-file %))]
     (cond
       (not (.isDirectory (io/file ".git"))) (println "Error: could not find database. (Did you runidiot init?)")
-      (= (second args) "-w") (if (check-exists (second args))
-                               (println (content-address (second args)))
+      (= (first args) "-w") (if (check-exists (second args))
+                               (do (print-address (second args)) (write-blob (second args)))
                                (println "Error: that file isn't readable"))
       :else (if (check-exists (first args))
-              (print (content-address (first args)))
-              (println "Error: that file isn't readable"))
-      )))
+              (print-address (first args))
+              (println "Error: that file isn't readable")))))

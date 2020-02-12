@@ -37,5 +37,3 @@
       (= command "hash-object") (hash/hash-object (rest args))
       :else (println "Error: invalid command"))
     ))
-
-(= "arg" nil)
