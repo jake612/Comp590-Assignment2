@@ -56,7 +56,8 @@
   [args]
   (let [check-exists #(.exists (io/as-file %))]
     (cond
-      (not (.isDirectory (io/file ".git"))) (println "Error: could not find database. (Did you runidiot init?)")
+      (or (nil? (first args)) (and (= (first args) "-w") (nil? (second args)))) (println "Error: you must specify a file.")
+      (not (.isDirectory (io/file ".git"))) (println "Error: could not find database. (Did you run `idiot init`?)")
       (= (first args) "-w") (if (check-exists (second args))
                                (do (print-address (second args)) (write-blob (second args)))
                                (println "Error: that file isn't readable"))
