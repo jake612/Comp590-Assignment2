@@ -21,7 +21,8 @@
 (defn content-address
   "function to compute the content address for a given file"
   [file]
-  )
+  (let [contents (slurp file)]
+    (str "blob " (count contents) "\000" contents)))
 
 (defn write-blob
   "function takes an address and writes it to the .git database"
@@ -39,5 +40,4 @@
       :else (if (check-exists (first args))
               (print (content-address (first args)))
               (println "Error: that file isn't readable"))
-      )
-    ))
+      )))
