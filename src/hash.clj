@@ -47,8 +47,8 @@
   [file]
   (let [header+blob (blob-data file)
         address (sha1-sum header+blob)
-        path-of-destination-file (str ".git\\objects\\" (subs address 0 2) "\\" (subs address 2))]
-    (if (not (.isDirectory (io/file (subs path-of-destination-file 0 15)))) (io/make-parents path-of-destination-file))
+        path-of-destination-file (str ".git/objects/" (subs address 0 2) "/" (subs address 2))]
+    (io/make-parents path-of-destination-file)
     (io/copy (zip-str header+blob) (io/file path-of-destination-file))))
 
 (defn hash-object
@@ -64,3 +64,5 @@
       :else (if (check-exists (first args))
               (print-address (first args))
               (println "Error: that file isn't readable")))))
+
+(io/make-parents "testdir/testdir2/hell.txt")
