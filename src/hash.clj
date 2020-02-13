@@ -41,7 +41,6 @@
   [file]
   (println (sha1-sum (blob-data file))))
 
-
 (defn write-blob
   "function takes an address and writes it to the .git database"
   [file]
@@ -49,7 +48,7 @@
         address (sha1-sum header+blob)
         path-of-destination-file (str ".git/objects/" (subs address 0 2) "/" (subs address 2))]
     (io/make-parents path-of-destination-file)
-    (io/copy (zip-str header+blob) (io/file path-of-destination-file))))
+    (io/copy (zip-str (slurp file)) (io/file path-of-destination-file))))
 
 (defn hash-object
   "main function for handling the hash-object command"
@@ -65,4 +64,3 @@
               (print-address (first args))
               (println "Error: that file isn't readable")))))
 
-(io/make-parents "testdir/testdir2/hell.txt")

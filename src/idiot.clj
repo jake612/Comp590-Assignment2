@@ -39,5 +39,4 @@
       (= command "init") (check-first init)
       (= command "hash-object") (check-first hash/hash-object)
       (= command "cat-file") (check-first cat/cat-file)
-      :else (println "Error: invalid command"))
-    ))
+      :else (println "Error: invalid command"))))
