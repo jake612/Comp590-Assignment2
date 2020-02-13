@@ -21,9 +21,10 @@
         switch (first args)
         get-path #(str ".git/objects/" (subs % 0 2) "/" (subs % 2))
         open #(with-open [input (-> % io/file io/input-stream)]
-               (unzip input))]
+                (unzip input))]
     (cond
       (not (.isDirectory (io/file ".git"))) (println "Error: could not find database. (Did you run `idiot init`?)")
-      (nil? address) (println "Error: you must specify an address.")
       (not= switch "-p") (println "Error: the -p switch is required")
-      :else (println (open (get-path address))))))
+      (nil? address) (println "Error: you must specify an address")
+      (not (.exists (io/as-file (get-path address)))) (println "Error: that address doesn't exist")
+      :else (print (open (get-path address))))))

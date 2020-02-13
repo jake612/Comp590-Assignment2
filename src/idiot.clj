@@ -20,7 +20,7 @@
   (cond
     (or (= "--help" (first args)) (= "-h" (first args))) (help "init")
     (> (count args) 0) (println "Error: init accepts no arguments")
-    :enter-main (if (.isDirectory (io/file ".git"))
+    :else (if (.isDirectory (io/file ".git"))
                   (println "Error: .git directory already exists")
                   (do (io/make-parents ".git/objects/sample.txt")
                       (println "Initialized empty Idiot repository in .git directory")))))
@@ -31,8 +31,8 @@
   (let [num-args (count args)
         command (first args)
         check-first (fn [func] (if (or (= "-h" (second args)) (= "--help" (second args)))
-                                         (help command)
-                                         (func (rest args))))]
+                                 (help command)
+                                 (func (rest args))))]
     (cond
       (or (= num-args 0) (= command "-h") (= command "--help")) (help "idiot")
       (= command "help") (help (second args))
