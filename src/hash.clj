@@ -48,7 +48,7 @@
         address (sha1-sum header+blob)
         path-of-destination-file (str ".git/objects/" (subs address 0 2) "/" (subs address 2))]
     (io/make-parents path-of-destination-file)
-    (io/copy (zip-str (slurp file)) (io/file path-of-destination-file))))
+    (io/copy (zip-str header+blob) (io/file path-of-destination-file))))
 
 (defn hash-object
   "main function for handling the hash-object command"
@@ -63,4 +63,3 @@
       :else (if (check-exists (first args))
               (print-address (first args))
               (println "Error: that file isn't readable")))))
-
