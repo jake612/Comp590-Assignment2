@@ -1,24 +1,8 @@
-(ns hash
+(ns hash-object
   (:require [clojure.java.io :as io])
-  (:import (java.security MessageDigest)
-           (java.io ByteArrayOutputStream ByteArrayInputStream)
+  (:require [hash-handler :as hh])
+  (:import (java.io ByteArrayOutputStream ByteArrayInputStream)
            (java.util.zip DeflaterOutputStream)))
-
-(defn sha1-hash-bytes [data]
-  (.digest (MessageDigest/getInstance "sha1")
-           (.getBytes data)))
-
-(defn byte->hex-digits [byte]
-  (format "%02x"
-          (bit-and 0xff byte)))
-
-(defn bytes->hex-string [bytes]
-  (->> bytes
-       (map byte->hex-digits)
-       (apply str)))
-
-(defn sha1-sum [header+blob]
-  (bytes->hex-string (sha1-hash-bytes header+blob)))
 
 (defn zip-str
   "Zip the given data with zlib. Return a ByteArrayInputStream of the zipped
@@ -30,22 +14,16 @@
     (.close zipper)
     (ByteArrayInputStream. (.toByteArray out))))
 
-(defn blob-data
-  "function to compute the content address for a given file"
-  [file]
-  (let [contents (slurp file)]
-    (str "blob " (count contents) "\000" contents)))
-
 (defn print-address
   "prints hash address for given file"
   [file]
-  (println (sha1-sum (blob-data file))))
+  (println (hh/sha1-sum (hh/blob-data file))))
 
 (defn write-blob
   "function takes an address and writes it to the .git database"
   [file]
-  (let [header+blob (blob-data file)
-        address (sha1-sum header+blob)
+  (let [header+blob (hh/blob-data file)
+        address (hh/sha1-sum header+blob)
         path-of-destination-file (str ".git/objects/" (subs address 0 2) "/" (subs address 2))]
     (io/make-parents path-of-destination-file)
     (io/copy (zip-str header+blob) (io/file path-of-destination-file))))
@@ -63,3 +41,4 @@
       :else (if (check-exists (first args))
               (print-address (first args))
               (println "Error: that file isn't readable")))))
+(hash-object ["-w" "test/test-file"])

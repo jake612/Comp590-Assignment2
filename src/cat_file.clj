@@ -1,4 +1,4 @@
-(ns cat
+(ns cat-file
   (:require [clojure.java.io :as io]
             [clojure.string :as str])
   (:import (java.util.zip InflaterInputStream)
@@ -33,3 +33,5 @@
       (nil? address) (println "Error: you must specify an address")
       (not (.exists (io/as-file (get-path address)))) (println "Error: that address doesn't exist")
       :else (print (open-file (get-path address))))))
+
+(cat-file ["-p" "d7850e62f5291ba99347ba8c0b2530a24c5caa42"])

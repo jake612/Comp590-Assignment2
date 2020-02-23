@@ -1,9 +1,11 @@
 (ns idiot
-  (:require [clojure.java.io :as io])
-  (:require hash)
-  (:require cat)
+  (:require [clojure.java.io :as io]
+            [hash-object])
+  (:require cat-file)
   (:require init)
-  (:require help))
+  (:require help)
+  (:require write-wtree)
+  (:required commit-tree))
 
 (defn -main
   "Main method for handling CLI"
@@ -17,6 +19,8 @@
       (or (= num-args 0) (= command "-h") (= command "--help")) (help/help "idiot")
       (= command "help") (help/help (second args))
       (= command "init") (check-first init/init)
-      (= command "hash-object") (check-first hash/hash-object)
-      (= command "cat-file") (check-first cat/cat-file)
+      (= command "hash-object") (check-first hash-object/hash-object)
+      (= command "cat-file") (check-first cat-file/cat-file)
+      (= command "write-wtree") (check-first write-wtree/write-wtree)
+      (= command "commit-tree") (check-first commit-tree/commit-tree)
       :else (println "Error: invalid command"))))
