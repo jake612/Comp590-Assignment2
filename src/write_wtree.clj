@@ -3,53 +3,67 @@
             [hash-handler :as hh]
             [hash-object :as ho]
             [clojure.string :as str]
-            [javax.xml.bind.DatatypeConverter]))
+            [git]
+            [byte-array :as ba]))
 
-(defn write-tree-object
-  [tree]
-  (let [header+tree (str "tree " (count tree) "\000" tree)
-        address (hh/sha1-sum header+tree)
+(defn write-object
+  [object-bytes]
+  (let [address (sha/string object-bytes)
         path-of-destination-file (str ".git/objects/" (subs address 0 2) "/" (subs address 2))]
-    (io/make-parents path-of-destination-file)
-    (println header+tree)
-    (println address)
-    (io/copy (ho/zip-str header+tree) (io/file path-of-destination-file))))
+    (when (not (.exists (io/as-file path-of-destination-file)))
+      (do (io/make-parents path-of-destination-file)
+          (io/copy (ho/zip-str object-bytes) (io/file path-of-destination-file))))
+    address))
 
-(defn hash->byte-array
-  [hash]
-  (let [splits (map (partial apply str) (partition-all 2 hash))
-        bytes (for [colloc splits] (read-string (str "0x" colloc)))]
-   (byte-array bytes)))
+(defn hex-digits->byte
+  [[dig1 dig2]]
+  ;; This is tricky because something like "ab" is "out of range" for a
+  ;; Byte, because Bytes are signed and can only be between -128 and 127
+  ;; (inclusive). So we have to temporarily use an int to give us the room
+  ;; we need, then adjust the value if needed to get it in the range for a
+  ;; byte, and finally cast to a byte.
+  (let [i (Integer/parseInt (str dig1 dig2) 16)
+        byte-ready-int (if (< Byte/MAX_VALUE i)
+                         (byte (- i 256))
+                         i)]
+    (byte byte-ready-int)))
 
-(defn byte-array->hash
-  [byte-array-string]
-  (String. (.getBytes byte-array-string)))
+(defn from-hex-string
+  [hex-str]
+  (byte-array (map hex-digits->byte (partition 2 hex-str))))
 
-(defn generate-blob-entry
+(defn blob-entry-formatter
   "generates a blob entry for use in a tree"
   [file]
   (ho/write-blob (.getAbsolutePath file))
-  (str "100644 " (.getName file) "\000" (new String (hash->byte-array (hh/sha1-sum (hh/blob-data file))))))
+  (ba/concat (.getBytes (str "100644 " (.getName file) "\000")) (from-hex-string (hh/sha1-sum (hh/blob-data file)))))
+
+(defn tree-entry-formatter
+  [name address]
+  (ba/concat (.getBytes (str "40000 " name "\000")) (from-hex-string address)))
 
 (defn generate-tree-entry
   "generate tree entry"
   [entries]
-  (let [entries-info (map (fn [string] (let [null-split (str/split string #"\000")]
-                                               [(second null-split) string])) entries)
-        alpha-order (sort-by second entries-info)
-        tree-entry (apply str (map second alpha-order))]
-    (write-tree-object tree-entry)
-    (str "04000 " (count tree-entry) "\000" tree-entry)))
+  (let [length (reduce + 0 (map count entries))
+        cat-entries (apply concat entries)
+        object-bytes (-> (str "tree " length "\000")
+                         .getBytes
+                         (concat cat-entries)
+                         byte-array)]
+    (write-object object-bytes)))
 
 
 (defn gen-tree
   "Function for recursively generating a tree given a directory"
-  [dir]
+  [dir level]
   (let [files (file-seq dir)
-        entries (for [file (rest files)] (if (.isDirectory file)
-                                    (gen-tree file)
-                                    (generate-blob-entry file)))]
-    (generate-tree-entry entries)))
+        sort-files (sort-by #(.getName %) (rest files))
+        filter-files (filter #(= level (count (re-seq #"\\" (.getPath %)))) sort-files)
+        entries (for [file filter-files] (if (.isDirectory file)
+                                           (tree-entry-formatter (.getName file) (gen-tree file (inc level)))
+                                           (blob-entry-formatter file)))]
+    (generate-tree-entry (vec entries))))
 
 (defn write-wtree
   "Function handles the write-wtree command"
@@ -57,10 +71,7 @@
   (cond
     (> (count args) 0) (println "Error: write-wtree accepts no arguments")
     (not (.isDirectory (io/file ".git"))) (println "Error: could not find database. (Did you run `idiot init`?)")
-    :else (gen-tree (io/file "dir"))))
+    :else (-> (io/file ".") (gen-tree 1) println)))
 
-(write-wtree [])
-(for [x (.getBytes "çË·\u001A\\r[f½q\u0016V;9Z˜¨\u001EPùˆ")] (println (char x)))
-(print (new String (hash->byte-array "e7cbb71a0d5b66bd7116563b395a98a81e50f988")))
-(count (.getBytes "\u007Fè‰³‰\u0012”×oÄ5ACAB¢¶\u001F¾»"))
+
 
