@@ -16,29 +16,29 @@
 
 (defn print-address
   "prints hash address for given file"
-  [file]
-  (println (hh/sha1-sum (hh/blob-data file))))
+  [file dir]
+  (println (hh/sha1-sum (hh/blob-data (str dir file)))))
 
 (defn write-blob
   "function takes an address and writes it to the .git database"
-  [file]
-  (let [header+blob (hh/blob-data file)
+  [file dir db]
+  (let [header+blob (hh/blob-data (str dir file))
         address (hh/sha1-sum header+blob)
-        path-of-destination-file (str ".git/objects/" (subs address 0 2) "/" (subs address 2))]
+        path-of-destination-file (str db "/objects/" (subs address 0 2) "/" (subs address 2))]
     (when (not (.exists (io/as-file path-of-destination-file)))
       (do (io/make-parents path-of-destination-file)
           (io/copy (zip-str header+blob) (io/file path-of-destination-file))))))
 
 (defn hash-object
   "main function for handling the hash-object command"
-  [args]
-  (let [check-exists #(.exists (io/as-file %))]
+  [args dir db]
+  (let [check-exists #(.exists (io/as-file (str dir %)))]
     (cond
       (or (nil? (first args)) (and (= (first args) "-w") (nil? (second args)))) (println "Error: you must specify a file.")
-      (not (.isDirectory (io/file ".git"))) (println "Error: could not find database. (Did you run `idiot init`?)")
+      (not (.isDirectory (io/file db))) (println "Error: could not find database. (Did you run `idiot init`?)")
       (= (first args) "-w") (if (check-exists (second args))
-                              (do (print-address (second args)) (write-blob (second args)))
+                              (do (print-address (second args) dir) (write-blob (second args) dir db))
                               (println "Error: that file isn't readable"))
       :else (if (check-exists (first args))
-              (print-address (first args))
+              (print-address (first args) dir)
               (println "Error: that file isn't readable")))))
