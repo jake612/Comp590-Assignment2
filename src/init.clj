@@ -4,7 +4,6 @@
 (defn init
   "Function to initialize a new database"
   [args dir db]
-  (println (str dir " " db))
   (cond
     (> (count args) 0) (println "Error: init accepts no arguments")
     :else (if (.isDirectory (io/file (str dir db)))
