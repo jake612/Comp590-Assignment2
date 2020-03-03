@@ -14,9 +14,8 @@
         command (first args)
         check-first (fn [func] (if (or (= "-h" (second args)) (= "--help" (second args)))
                                  (help/help command)
-                                 (func (rest args))))]
+                                 (func (rest args) dir db)))]
     (cond
-
       (or (= num-args 0) (= command "-h") (= command "--help")) (help/help "idiot")
       (= command "help") (help/help (second args))
       (= command "init") (check-first init/init)
